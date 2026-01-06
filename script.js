@@ -1115,19 +1115,19 @@ function updateFosasChart(data) {
             .replace(/[\u0300-\u036f]/g, "");
     };
     
-    // Crear mapa de delitos normalizados
-    // Los delitos se extraen dinámicamente del Google Sheet
-    const delitosCanonicos = {};
-    
-    const delitoNormalizadoMap = {};
-    Object.keys(delitosCanonicos).forEach(d => {
-        delitoNormalizadoMap[normalizeDelito(d)] = d;
-    });
-    
     // Crear mapa de municipios normalizados
     const municipiosNormalizados = {};
     municipiosAMG.forEach(m => {
         municipiosNormalizados[normalizeMunicipio(m)] = m;
+    });
+    
+    // Obtener tipos de delito PRIMERO
+    const delitos = extractDelitosDinamicamente(data);
+    
+    // Crear mapa de delitos canonicos
+    const delitosCanonicos = {};
+    delitos.forEach(d => {
+        delitosCanonicos[d] = d;
     });
     
     // Agrupar datos por municipio y tipo de delito
@@ -1142,19 +1142,8 @@ function updateFosasChart(data) {
         }
         
         const delitoNormalizado = normalizeDelito(item.delito || 'Desconocido');
-        const delitoKey = delitoNormalizadoMap[delitoNormalizado] || 'desconocido';
-        municipioData[municipioKey][delitoKey] = (municipioData[municipioKey][delitoKey] || 0) + 1;
-    });
-    
-    // Obtener tipos de delito ordenados
-    const delitos = extractDelitosDinamicamente(data)
-        .filter(d => {
-            return Object.values(municipioData).some(m => m[d]);
-        });
-    
-    // Crear mapa de delitos canonicos desde los datos
-    delitos.forEach(d => {
-        delitosCanonicos[d] = d.charAt(0).toUpperCase() + d.slice(1);
+        // Usar directamente el delito normalizado
+        municipioData[municipioKey][delitoNormalizado] = (municipioData[municipioKey][delitoNormalizado] || 0) + 1;
     });
     
     // Crear lista de municipios: 9 del AMG + Interior del estado
@@ -1221,25 +1210,7 @@ function updateFosasChart(data) {
 }
 
 function updateFosasAnualChart(data) {
-    // Función para normalizar nombres de delitos (sin acentos, minúscula)
-    const normalizeDelito = (nombre) => {
-        return nombre
-            .trim()
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '');
-    };
-    
-    // Crear mapa de delitos normalizados
-    // Los delitos se extraen dinámicamente del Google Sheet
-    const delitosCanonicos = {};
-    
-    const delitoNormalizadoMap = {};
-    Object.keys(delitosCanonicos).forEach(d => {
-        delitoNormalizadoMap[normalizeDelito(d)] = d;
-    });
-    
-    // Agrupar datos por año y tipo de delito
+    // Obtener años ordenados
     const delitoAnualData = {};
     data.forEach(item => {
         if (!delitoAnualData[item.año]) {
@@ -1248,9 +1219,8 @@ function updateFosasAnualChart(data) {
         
         // Normalizar el nombre del delito
         const delitoNormalizado = normalizeDelito(item.delito || 'Desconocido');
-        const delitoKey = delitoNormalizadoMap[delitoNormalizado] || 'desconocido';
-        
-        delitoAnualData[item.año][delitoKey] = (delitoAnualData[item.año][delitoKey] || 0) + 1;
+        // Usar directamente el delito normalizado
+        delitoAnualData[item.año][delitoNormalizado] = (delitoAnualData[item.año][delitoNormalizado] || 0) + 1;
     });
     
     // Obtener años ordenados
@@ -1262,9 +1232,10 @@ function updateFosasAnualChart(data) {
             return años.some(año => delitoAnualData[año][d]);
         });
     
-    // Crear mapa de delitos canonicos desde los datos
+    // Crear mapa de delitos canonicos
+    const delitosCanonicos = {};
     delitos.forEach(d => {
-        delitosCanonicos[d] = d.charAt(0).toUpperCase() + d.slice(1);
+        delitosCanonicos[d] = d;
     });
     
     // Colores para los tipos de delito (generados dinámicamente)
