@@ -35,6 +35,27 @@ function generateDelitoColors(delitos) {
     return coloresDelitos;
 }
 
+// ===== FUNCION PARA EXTRAER DINAMICAMENTE LOS DELITOS DEL GOOGLE SHEET =====
+function extractDelitosDinamicamente(data) {
+    const delitoSet = new Set();
+    data.forEach(item => {
+        if (item.delito) {
+            const delitoNormalizado = normalizeDelito(item.delito);
+            delitoSet.add(delitoNormalizado);
+        }
+    });
+    return Array.from(delitoSet).sort();
+}
+
+// Funcion para normalizar nombres de delitos (sin acentos, minuscula)
+function normalizeDelito(nombre) {
+    return nombre
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+}
+
 // ===== VARIABLES GLOBALES =====
 let map;
 let allData = [];
@@ -1131,6 +1152,11 @@ function updateFosasChart(data) {
             return Object.values(municipioData).some(m => m[d]);
         });
     
+    // Crear mapa de delitos canonicos desde los datos
+    delitos.forEach(d => {
+        delitosCanonicos[d] = d.charAt(0).toUpperCase() + d.slice(1);
+    });
+    
     // Crear lista de municipios: 9 del AMG + Interior del estado
     const municipiosParaGrafico = [...municipiosAMG, 'Interior del estado'];
     
@@ -1140,7 +1166,7 @@ function updateFosasChart(data) {
     // Crear datasets para cada tipo de delito (cada delito será un segmento apilado)
     const datasets = delitos.map(delito => {
         return {
-            label: delitosCanonicos[delito],
+            label: delito.charAt(0).toUpperCase() + delito.slice(1),
             data: municipiosParaGrafico.map(municipio => {
                 return municipioData[municipio] && municipioData[municipio][delito] ? municipioData[municipio][delito] : 0;
             }),
@@ -1236,13 +1262,18 @@ function updateFosasAnualChart(data) {
             return años.some(año => delitoAnualData[año][d]);
         });
     
+    // Crear mapa de delitos canonicos desde los datos
+    delitos.forEach(d => {
+        delitosCanonicos[d] = d.charAt(0).toUpperCase() + d.slice(1);
+    });
+    
     // Colores para los tipos de delito (generados dinámicamente)
     const coloresDelitos = generateDelitoColors(delitos);
     
     // Crear datasets para cada tipo de delito
     const datasets = delitos.map(delito => {
         return {
-            label: delitosCanonicos[delito],
+            label: delito.charAt(0).toUpperCase() + delito.slice(1),
             data: años.map(año => {
                 return delitoAnualData[año] && delitoAnualData[año][delito] ? delitoAnualData[año][delito] : 0;
             }),
